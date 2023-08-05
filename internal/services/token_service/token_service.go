@@ -47,6 +47,9 @@ type Service struct {
 	refreshSecret string
 }
 
+// NewService function is a constructor for the Service struct.
+// It takes a Redis client, access secret and refresh secret as arguments
+// and returns a pointer to a Service object.
 func NewService(cache *redis.Client, accessSecret, refreshSecret string) *Service {
 	return &Service{
 		cache:         cache,
@@ -55,6 +58,9 @@ func NewService(cache *redis.Client, accessSecret, refreshSecret string) *Servic
 	}
 }
 
+// CreateToken function is used to create a new JWT (JSON Web Token) token.
+// It takes a user ID as an argument and returns a pointer to a TokenDetails object
+// (which includes the access token, refresh token, and related details) or an error.
 func (s *Service) CreateToken(userID int) (*TokenDetails, error) {
 	td := &TokenDetails{}
 
@@ -97,6 +103,9 @@ func (s *Service) CreateToken(userID int) (*TokenDetails, error) {
 	return td, nil
 }
 
+// DecodeAccessToken function is used to decode an access token.
+// It takes an access token as a string and returns a pointer to an
+// AccessTokenClaims object (which includes the details of the access token) or an error.
 func (s *Service) DecodeAccessToken(tokenStr string) (*AccessTokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &AccessTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.accessSecret), nil
@@ -113,6 +122,9 @@ func (s *Service) DecodeAccessToken(tokenStr string) (*AccessTokenClaims, error)
 	return nil, errors.New("token is not valid")
 }
 
+// DecodeRefreshToken function is used to decode a refresh token.
+// It takes a refresh token as a string and returns a pointer to a RefreshTokenClaims
+// object (which includes the details of the refresh token) or an error.
 func (s *Service) DecodeRefreshToken(tokenStr string) (*RefreshTokenClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &RefreshTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.refreshSecret), nil
@@ -129,6 +141,9 @@ func (s *Service) DecodeRefreshToken(tokenStr string) (*RefreshTokenClaims, erro
 	return nil, errors.New("token is not valid")
 }
 
+// CreateCacheKey function is used to create a cache key.
+// It takes a context, a user ID, and a TokenDetails object and saves the token details to the Redis cache.
+// It returns an error if the operation fails.
 func (s *Service) CreateCacheKey(ctx context.Context, userID int, td *TokenDetails) error {
 	at := time.Unix(td.AtExpires, 0) // convert to UTC
 	rt := time.Unix(td.RtExpires, 0) // convert to UTC
@@ -153,6 +168,9 @@ func (s *Service) CreateCacheKey(ctx context.Context, userID int, td *TokenDetai
 	return nil
 }
 
+// DropCacheKey function is used to remove a cache key.
+// It takes a context and a UUID as arguments and removes the corresponding key from the Redis cache.
+// It returns an error if the operation fails.
 func (s *Service) DropCacheKey(ctx context.Context, Uuid string) error {
 	err := s.cache.Del(ctx, Uuid).Err()
 	if err != nil {
@@ -162,6 +180,9 @@ func (s *Service) DropCacheKey(ctx context.Context, Uuid string) error {
 	return nil
 }
 
+// GetCacheValue function is used to get a value from the cache.
+// It takes a context and a UUID as arguments and retrieves the corresponding value from the Redis cache.
+// It returns the retrieved value and an error if the operation fails.
 func (s *Service) GetCacheValue(ctx context.Context, Uuid string) (*string, error) {
 	value, err := s.cache.Get(ctx, Uuid).Result()
 	if err != nil {
@@ -171,6 +192,9 @@ func (s *Service) GetCacheValue(ctx context.Context, Uuid string) (*string, erro
 	return &value, nil
 }
 
+// DropCacheTokens function is used to remove cache tokens.
+// It takes a context and an AccessTokenClaims object, removes the corresponding access and refresh tokens from the cache,
+// and returns an error if the operation fails.
 func (s *Service) DropCacheTokens(ctx context.Context, accessTokenClaims AccessTokenClaims) error {
 	cacheJSON, err := s.GetCacheValue(ctx, accessTokenClaims.AccessUUID)
 	if err != nil {
