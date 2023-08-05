@@ -6,6 +6,7 @@ type Message struct {
 	ChatID    int    `json:"chatID,omitempty" gorm:"foreignKey:ChatID" example:"1"`
 	Content   string `json:"content" example:"twit-twit"`
 	SenderID  int    `json:"senderId,omitempty" gorm:"foreignKey:SenderID" example:"2"`
+	Sender    User   `json:"sender,omitempty"`
 	Status    string `json:"status,omitempty" example:"sent"` // sent, delivered, read
 	CreatedAt int64  `json:"createdAt,omitempty" example:"1230000000"`
 }

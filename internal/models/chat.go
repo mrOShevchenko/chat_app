@@ -12,5 +12,5 @@ type ChatRepository interface {
 	FindPrivateChatByUsersArray(users []*User) (*Chat, error)
 	Create(chat *Chat) error
 	Update(chat *Chat) error
-	Delete(caht *Chat) error
+	Delete(chat *Chat) error
 }

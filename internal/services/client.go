@@ -12,115 +12,113 @@ const (
 	channelsKey = "channels"
 )
 
+// Client represents a chat client
 type Client struct {
-	User            *models.User
-	channelsHandler *redis.PubSub
-
+	User             *models.User
+	channelsHandler  *redis.PubSub
 	stopListenerChan chan struct{}
 	listening        bool
-
-	MessageChan chan redis.Message
+	MessageChan      chan redis.Message
 }
 
-// Connect client to client channels on redis
-func Connect(rdb *redis.Client, user *models.User) (*Client, error) {
-	if _, err := rdb.SAdd(context.Background(), clientsKey, user.ID).Result(); err != nil {
+// Connect initializes a new chat client and connects it to the client channels on Redis.
+func Connect(ctx context.Context, rdb *redis.Client, user *models.User) (*Client, error) {
+	if _, err := rdb.SAdd(ctx, clientsKey, user.ID).Result(); err != nil {
 		return nil, err
 	}
 
-	c := &Client{
+	client := &Client{
 		User:             user,
 		stopListenerChan: make(chan struct{}),
 		MessageChan:      make(chan redis.Message),
 	}
 
-	if err := c.connect(rdb); err != nil {
+	if err := client.initializeConnection(ctx, rdb); err != nil {
 		return nil, err
 	}
 
-	return c, nil
+	return client, nil
 }
 
-func (c *Client) connect(rdb *redis.Client) error {
-
-	var c0 []string
-
-	c1, err := rdb.SMembers(context.Background(), channelsKey).Result()
+func (c *Client) initializeConnection(ctx context.Context, rdb *redis.Client) error {
+	channelsToConnect, err := c.buildChannelsList(ctx, rdb)
 	if err != nil {
 		return err
 	}
 
-	c0 = append(c0, c1...)
+	if err := c.disconnectExistingChannels(ctx); err != nil {
+		return err
+	}
+
+	return c.doConnect(ctx, rdb, channelsToConnect...)
+}
+
+func (c *Client) buildChannelsList(ctx context.Context, rdb *redis.Client) ([]string, error) {
+	channelsToConnect, err := rdb.SMembers(ctx, channelsKey).Result()
+	if err != nil {
+		return nil, err
+	}
 
 	for _, chat := range c.User.Chats {
-		c0 = append(c0, fmt.Sprintf("%d", chat.ID))
+		channelsToConnect = append(channelsToConnect, fmt.Sprintf("%d", chat.ID))
 	}
 
-	if len(c0) == 0 {
-		fmt.Println("no channels to connect to client: ", c.User.ID)
-		return nil
-	}
-
-	if c.channelsHandler != nil {
-		if err = c.channelsHandler.Unsubscribe(context.Background()); err != nil {
-			return err
-		}
-		if err = c.channelsHandler.Close(); err != nil {
-			return err
-		}
-	}
-	if c.listening {
-		c.stopListenerChan <- struct{}{}
-	}
-
-	return c.doConnect(rdb, c0...)
+	return channelsToConnect, nil
 }
 
-func (c *Client) doConnect(rdb *redis.Client, channels ...string) error {
-	//subcsribe all channels in one request
-	pubSub := rdb.Subscribe(context.Background(), channels...)
-	// keep channel handler to be used in unsubscribe
-	c.channelsHandler = pubSub
-
-	// the Listener
-	go func() {
-		c.listening = true
-		fmt.Printf("starting the listener for client %d on channels: %s", c.User.ID, channels)
-		for {
-			select {
-			case msg, ok := <-pubSub.Channel():
-				if !ok {
-					return
-				}
-				c.MessageChan <- *msg
-			case <-c.stopListenerChan:
-				fmt.Printf("stopping the listener for client: %d", c.User.ID)
-				return
-			}
-		}
-
-	}()
-	return nil
-}
-
-func (c *Client) Disconnect() error {
+func (c *Client) disconnectExistingChannels(ctx context.Context) error {
 	if c.channelsHandler != nil {
-		if err := c.channelsHandler.Unsubscribe(context.Background()); err != nil {
+		if err := c.channelsHandler.Unsubscribe(ctx); err != nil {
 			return err
 		}
 		if err := c.channelsHandler.Close(); err != nil {
 			return err
 		}
 	}
+
 	if c.listening {
 		c.stopListenerChan <- struct{}{}
 	}
 
+	return nil
+}
+
+func (c *Client) doConnect(ctx context.Context, rdb *redis.Client, channels ...string) error {
+	pubSub := rdb.Subscribe(ctx, channels...)
+	c.channelsHandler = pubSub
+	go c.startListener(channels)
+
+	return nil
+}
+
+func (c *Client) startListener(channels []string) {
+	c.listening = true
+	fmt.Printf("Starting the listener for client %d on channels: %s\n", c.User.ID, channels)
+	for {
+		select {
+		case msg, ok := <-c.channelsHandler.Channel():
+			if !ok {
+				return
+			}
+			c.MessageChan <- *msg
+		case <-c.stopListenerChan:
+			fmt.Printf("Stopping the listener for client: %d\n", c.User.ID)
+			return
+		}
+	}
+}
+
+// Disconnect closes the client's channels and disconnects the client.
+func (c *Client) Disconnect(ctx context.Context) error {
+	if err := c.disconnectExistingChannels(ctx); err != nil {
+		return err
+	}
 	close(c.MessageChan)
 
 	return nil
 }
 
-func Chat(rdb *redis.Client, channel string, content string) error {
-	return rdb.Publish(context.Background(), channel, content).Err()
+// Chat sends a message to a specific channel.
+func Chat(ctx context.Context, rdb *redis.Client, channel string, content string) error {
+	return rdb.Publish(ctx, channel, content).Err()
 }
