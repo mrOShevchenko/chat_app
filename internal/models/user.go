@@ -21,12 +21,13 @@ type UserRepository interface {
 	FindAll() (*[]User, error)
 	FindByID(id int) (*User, error)
 	FindByUsername(username string) (*User, error)
-	FindArrayByPartUsername(username string, order string, limit int) (*User, error)
+	FindArrayByPartUsername(username string, order string, limit int) (*[]User, error)
 	Create(user *User) error
 	Update(user *User) error
+	UpdateWithAssociations(user *User) error
 	Delete(user *User) error
-	ReplaceFollowedUsers(user *User, followedUsers *[]User) error
-	ReplaceBlockedUsers(user *User, blockedUsers *[]User) error
+	ReplaceFollowedUsers(user *User, followedUsers []*User) error
+	ReplaceBlockedUsers(user *User, blockedUsers []*User) error
 	ResetPassword(user *User, password string) error
 	PasswordMatches(user *User, plainText string) (bool, error)
 }
