@@ -177,7 +177,6 @@ func (h *BaseHandler) GetChat(c echo.Context) error {
 	}
 
 	chat, err := h.chatRepo.FindPrivateChatByUsersArray([]*models.User{user, chatUser})
-	fmt.Println(chat)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return ErrorResponse(c, http.StatusInternalServerError, "error while searching chat", err)
 	}
