@@ -1,7 +1,6 @@
-package middleware
+package internal
 
 import (
-	"chat_app/configs"
 	"chat_app/internal/handlers"
 	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
@@ -10,11 +9,7 @@ import (
 	"os"
 )
 
-type MiddlewareConfig struct {
-	config *configs.Config
-}
-
-func (app *MiddlewareConfig) AddMiddleware(e *echo.Echo) {
+func (app *AppConfig) AddMiddleware(e *echo.Echo) {
 	DeafaulCORSConfig := middleware.CORSConfig{
 		Skipper:      middleware.DefaultSkipper,
 		AllowOrigins: []string{"*"},
@@ -27,7 +22,7 @@ func (app *MiddlewareConfig) AddMiddleware(e *echo.Echo) {
 	e.Use(middleware.Recover())
 }
 
-func (app *MiddlewareConfig) AuthTokenMiddleware() echo.MiddlewareFunc {
+func (app *AppConfig) AuthTokenMiddleware() echo.MiddlewareFunc {
 	AuthorizationConfig := echojwt.Config{
 		SigningKey:     []byte(os.Getenv("ACCESS_SECRET")),
 		ParseTokenFunc: app.ParseToken,
@@ -39,7 +34,7 @@ func (app *MiddlewareConfig) AuthTokenMiddleware() echo.MiddlewareFunc {
 	return echojwt.WithConfig(AuthorizationConfig)
 }
 
-func (app *MiddlewareConfig) AuthUserMiddleware() echo.MiddlewareFunc {
+func (app *AppConfig) AuthUserMiddleware() echo.MiddlewareFunc {
 	AuthorizationConfig := echojwt.Config{
 		SigningKey:     []byte(os.Getenv("ACCESS_SECRET")),
 		ParseTokenFunc: app.GetUser,
@@ -51,15 +46,15 @@ func (app *MiddlewareConfig) AuthUserMiddleware() echo.MiddlewareFunc {
 	return echojwt.WithConfig(AuthorizationConfig)
 }
 
-func (app *MiddlewareConfig) ParseToken(c echo.Context, auth string) (interface{}, error) {
+func (app *AppConfig) ParseToken(c echo.Context, auth string) (interface{}, error) {
 	_ = c
 
-	accessTokenClaims, err := app.config.TokenService.DecodeAccessToken(auth)
+	accessTokenClaims, err := app.Config.TokenService.DecodeAccessToken(auth)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = app.config.TokenService.GetCacheValue(c.Request().Context(), accessTokenClaims.AccessUUID)
+	_, err = app.Config.TokenService.GetCacheValue(c.Request().Context(), accessTokenClaims.AccessUUID)
 	if err != nil {
 		return nil, err
 	}
@@ -67,19 +62,19 @@ func (app *MiddlewareConfig) ParseToken(c echo.Context, auth string) (interface{
 	return accessTokenClaims, nil
 }
 
-func (app *MiddlewareConfig) GetUser(c echo.Context, auth string) (interface{}, error) {
+func (app *AppConfig) GetUser(c echo.Context, auth string) (interface{}, error) {
 	_ = c
-	accessTokenClaims, err := app.config.TokenService.DecodeAccessToken(auth)
+	accessTokenClaims, err := app.Config.TokenService.DecodeAccessToken(auth)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = app.config.TokenService.GetCacheValue(c.Request().Context(), accessTokenClaims.AccessUUID)
+	_, err = app.Config.TokenService.GetCacheValue(c.Request().Context(), accessTokenClaims.AccessUUID)
 	if err != nil {
 		return nil, err
 	}
 
-	user, err := app.config.UserRepo.FindByID(accessTokenClaims.UserID)
+	user, err := app.Config.UserRepo.FindByID(accessTokenClaims.UserID)
 	if err != nil {
 		return nil, err
 	}

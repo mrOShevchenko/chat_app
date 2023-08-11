@@ -197,7 +197,7 @@ func (cs *ChatService) OnChannelMessage(ctx echo.Context, conn *websocket.Conn, 
 			var message models.Message
 			err := json.Unmarshal([]byte(m.Payload), &message)
 			if err != nil {
-				cs.HandleWSError(err, "error unmarshaling channel message", conn)
+				cs.HandleWSError(err, "error unmarshalling channel message", conn)
 				continue
 			}
 

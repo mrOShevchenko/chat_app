@@ -23,8 +23,8 @@ func NewUserRepo(db *gorm.DB, cache *redis.Client) *UserRepo {
 }
 
 // FindAll retrieves all users from the database.
-func (r *UserRepo) FindAll() ([]*models.User, error) {
-	var users []*models.User
+func (r *UserRepo) FindAll() (*[]models.User, error) {
+	var users *[]models.User
 	err := r.db.Find(&users).Error
 	if err != nil {
 		return nil, err
@@ -53,8 +53,8 @@ func (r *UserRepo) FindByUsername(username string) (*models.User, error) {
 }
 
 // FindArrayByPartUsername retrieves users whose username starts with a given substring.
-func (r *UserRepo) FindArrayByPartUsername(username string, order string, limit int) ([]*models.User, error) {
-	var users []*models.User
+func (r *UserRepo) FindArrayByPartUsername(username string, order string, limit int) (*[]models.User, error) {
+	var users *[]models.User
 	err := r.db.Where("username LIKE ?", username+"%").Order("username " + order).Limit(limit).Find(&users).Error
 	if err != nil {
 		return nil, err

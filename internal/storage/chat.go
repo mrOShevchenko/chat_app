@@ -26,8 +26,8 @@ func (r *ChatRepo) FindByID(id int) (*models.Chat, error) {
 }
 
 // FindByUserID retrieves all chats of the user with the provided ID.
-func (r *ChatRepo) FindByUserID(id int) ([]*models.Chat, error) {
-	var chats []*models.Chat
+func (r *ChatRepo) FindByUserID(id int) (*[]models.Chat, error) {
+	var chats []models.Chat
 	err := r.db.Preload("Users").
 		Joins("JOIN chat_users ON chat_users.chat_id = chats.id").
 		Where("chat_users.user_id = ?", id).
@@ -35,7 +35,7 @@ func (r *ChatRepo) FindByUserID(id int) ([]*models.Chat, error) {
 	if err != nil {
 		return nil, err
 	}
-	return chats, nil
+	return &chats, nil
 }
 
 // FindPrivateChatByUsersArray finds the private chat for the provided users.

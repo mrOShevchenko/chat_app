@@ -16,13 +16,13 @@ func NewMessageRepo(db *gorm.DB) *MessageRepo {
 }
 
 // FindAll retrieves all messages from the database.
-func (r *MessageRepo) FindAll() ([]*models.Message, error) {
-	var messages []*models.Message
+func (r *MessageRepo) FindAll() (*[]models.Message, error) {
+	var messages []models.Message
 	err := r.db.Find(&messages).Error
 	if err != nil {
 		return nil, err
 	}
-	return messages, nil
+	return &messages, nil
 }
 
 // FindByID retrieves the message with the provided ID from the database.
@@ -47,8 +47,8 @@ func (r *MessageRepo) Update(message *models.Message) error {
 
 // GetMessages retrieves a list of messages associated with the chatID.
 // The 'from' parameter determines the starting ID from which messages are retrieved, and 'limit' specifies the number of messages.
-func (r *MessageRepo) GetMessages(chatID, from, limit int) ([]*models.Message, error) {
-	var messages []*models.Message
+func (r *MessageRepo) GetMessages(chatID, from, limit int) (*[]models.Message, error) {
+	var messages *[]models.Message
 	db := r.db.Preload("Sender").
 		Where("chat_id = ?", chatID).
 		Limit(limit).

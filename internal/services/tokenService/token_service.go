@@ -50,11 +50,9 @@ type Service struct {
 // NewService function is a constructor for the Service struct.
 // It takes a Redis client, access secret and refresh secret as arguments
 // and returns a pointer to a Service object.
-func NewService(cache *redis.Client, accessSecret, refreshSecret string) *Service {
+func NewService(cache *redis.Client) *Service {
 	return &Service{
-		cache:         cache,
-		accessSecret:  accessSecret,
-		refreshSecret: refreshSecret,
+		cache: cache,
 	}
 }
 

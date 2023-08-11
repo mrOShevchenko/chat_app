@@ -15,7 +15,7 @@ const maxAttempts = 10
 // NewClient creates a new Redis client.
 // It keeps attempting to connect to the database until successful, or until maxAttempts has been reached.
 // In case of a failure, it returns an error.
-func NewClient(ctx context.Context) (*redis.Client, error) {
+func NewClient(c context.Context) (*redis.Client, error) {
 	dsn := os.Getenv("REDIS_DSN")
 	password := os.Getenv("REDIS_PASSWORD")
 
@@ -25,7 +25,7 @@ func NewClient(ctx context.Context) (*redis.Client, error) {
 			Password: password,
 		})
 
-		_, err := client.Ping(ctx).Result()
+		_, err := client.Ping(c).Result()
 
 		if err != nil {
 			log.Printf("Attempt %d: Redis not ready, reconnect after two seconds...", attempt)
