@@ -1,0 +1,70 @@
+services:
+  # Nginx high performance web server
+  nginx:
+    container_name: nginx
+    restart: unless-stopped
+    depends_on:
+      - chat-app
+    build: ./nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./images:${IMAGES_DIRECTORY_PATH}
+
+  # Golang binary chat-service
+  chat-app:
+    container_name: chat-app
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - mysql
+      - redis
+    deploy:
+      mode: replicated
+      replicas: 1
+    environment:
+      APP_ENV: ${APP_ENV}
+      MYSQL_DSN: ${MYSQL_DSN}
+      REDIS_DSN: ${REDIS_DSN}
+      FIREBASE_KEY_PATH: ${FIREBASE_KEY_PATH}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      ACCESS_SECRET: ${ACCESS_SECRET}
+      ACCESS_EXP_MINUTES: ${ACCESS_EXP_MINUTES}
+      REFRESH_SECRET: ${REFRESH_SECRET}
+      REFRESH_EXP_MINUTES: ${REFRESH_EXP_MINUTES}
+      IMAGES_DIRECTORY_PATH: ${IMAGES_DIRECTORY_PATH}
+      URL_PREFIX_IMAGES: ${URL_PREFIX_IMAGES}
+    volumes:
+      - ./images:${IMAGES_DIRECTORY_PATH}
+
+  # MySQL
+  mysql:
+    container_name: mysql
+    image: mysql:8.0
+    restart: unless-stopped
+    command: mysqld --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+    ports:
+      - ${MYSQL_PORT}:${MYSQL_PORT}
+    volumes:
+      - "./db/mysql/data:/var/lib/mysql"
+      - "./db/mysql/my.cnf:/etc/mysql/conf.d/my.cnf"
+      - "./db/mysql/sql:/docker-entrypoint-initdb.d"
+
+  # Redis
+  redis:
+    container_name: redis
+    image: "redis:6.2-alpine"
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - "./db/redis:/data"

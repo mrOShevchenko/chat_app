@@ -13,11 +13,24 @@ import (
 	redisClient "chat_app/pkg/redis_client"
 	"fmt"
 	"github.com/labstack/gommon/log"
-
 )
 
 const webPort = 80
 
+// @title chat app
+// @version 1.0
+// @description Backend App for simple social Live Chat
+
+// @contact.name Oleksii Shevchenko
+// @contact.url https://github.com/mrOShevchenko
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Should contain Access JWT Token, with the Bearer started
+
+// @host localhost:80
+// @BasePath /
 func main() {
 	clientGORM, err := gormClient.NewClient()
 	if err != nil {
