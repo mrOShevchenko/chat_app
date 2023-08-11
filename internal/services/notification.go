@@ -4,7 +4,7 @@ import (
 	"chat_app/internal/models"
 	"firebase.google.com/go/messaging"
 	"fmt"
-	"golang.org/x/net/context"
+	"github.com/labstack/echo/v4"
 	"log"
 )
 
@@ -29,8 +29,8 @@ func (cs *ChatService) fetchUserByID(userID int) (*models.User, error) {
 }
 
 // Sends a message to a user device
-func (cs *ChatService) sendMessageToDevice(ctx context.Context, user *models.User, message *models.Message) {
-	client, err := cs.firebaseApp.Messaging(ctx)
+func (cs *ChatService) sendMessageToDevice(ctx echo.Context, user *models.User, message *models.Message) {
+	client, err := cs.firebaseApp.Messaging(ctx.Request().Context())
 	if err != nil {
 		log.Printf("error getting Messaging client: %v \n", err)
 		return
@@ -45,7 +45,7 @@ func (cs *ChatService) sendMessageToDevice(ctx context.Context, user *models.Use
 			Token: d.Token,
 		}
 
-		response, err := client.Send(ctx, msg)
+		response, err := client.Send(ctx.Request().Context(), msg)
 		if err != nil {
 			log.Printf("error sending message: %s \n", err)
 			continue
@@ -56,7 +56,7 @@ func (cs *ChatService) sendMessageToDevice(ctx context.Context, user *models.Use
 }
 
 // SendNotification sends notifications to users.
-func (cs *ChatService) SendNotification(ctx context.Context, message *models.Message) {
+func (cs *ChatService) SendNotification(ctx echo.Context, message *models.Message) {
 	chat, err := cs.fetchChatFromMessage(message)
 	if err != nil {
 		return

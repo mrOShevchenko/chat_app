@@ -2,8 +2,8 @@ package services
 
 import (
 	"chat_app/internal/models"
-	"context"
 	"fmt"
+	"github.com/labstack/echo/v4"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -22,8 +22,8 @@ type Client struct {
 }
 
 // Connect initializes a new chat client and connects it to the client channels on Redis.
-func Connect(ctx context.Context, rdb *redis.Client, user *models.User) (*Client, error) {
-	if _, err := rdb.SAdd(ctx, clientsKey, user.ID).Result(); err != nil {
+func Connect(ctx echo.Context, rdb *redis.Client, user *models.User) (*Client, error) {
+	if _, err := rdb.SAdd(ctx.Request().Context(), clientsKey, user.ID).Result(); err != nil {
 		return nil, err
 	}
 
@@ -40,7 +40,7 @@ func Connect(ctx context.Context, rdb *redis.Client, user *models.User) (*Client
 	return client, nil
 }
 
-func (c *Client) initializeConnection(ctx context.Context, rdb *redis.Client) error {
+func (c *Client) initializeConnection(ctx echo.Context, rdb *redis.Client) error {
 	channelsToConnect, err := c.buildChannelsList(ctx, rdb)
 	if err != nil {
 		return err
@@ -53,8 +53,8 @@ func (c *Client) initializeConnection(ctx context.Context, rdb *redis.Client) er
 	return c.doConnect(ctx, rdb, channelsToConnect...)
 }
 
-func (c *Client) buildChannelsList(ctx context.Context, rdb *redis.Client) ([]string, error) {
-	channelsToConnect, err := rdb.SMembers(ctx, channelsKey).Result()
+func (c *Client) buildChannelsList(ctx echo.Context, rdb *redis.Client) ([]string, error) {
+	channelsToConnect, err := rdb.SMembers(ctx.Request().Context(), channelsKey).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -66,9 +66,9 @@ func (c *Client) buildChannelsList(ctx context.Context, rdb *redis.Client) ([]st
 	return channelsToConnect, nil
 }
 
-func (c *Client) disconnectExistingChannels(ctx context.Context) error {
+func (c *Client) disconnectExistingChannels(ctx echo.Context) error {
 	if c.channelsHandler != nil {
-		if err := c.channelsHandler.Unsubscribe(ctx); err != nil {
+		if err := c.channelsHandler.Unsubscribe(ctx.Request().Context()); err != nil {
 			return err
 		}
 		if err := c.channelsHandler.Close(); err != nil {
@@ -83,8 +83,8 @@ func (c *Client) disconnectExistingChannels(ctx context.Context) error {
 	return nil
 }
 
-func (c *Client) doConnect(ctx context.Context, rdb *redis.Client, channels ...string) error {
-	pubSub := rdb.Subscribe(ctx, channels...)
+func (c *Client) doConnect(ctx echo.Context, rdb *redis.Client, channels ...string) error {
+	pubSub := rdb.Subscribe(ctx.Request().Context(), channels...)
 	c.channelsHandler = pubSub
 	go c.startListener(channels)
 
@@ -109,7 +109,7 @@ func (c *Client) startListener(channels []string) {
 }
 
 // Disconnect closes the client's channels and disconnects the client.
-func (c *Client) Disconnect(ctx context.Context) error {
+func (c *Client) Disconnect(ctx echo.Context) error {
 	if err := c.disconnectExistingChannels(ctx); err != nil {
 		return err
 	}
@@ -119,6 +119,6 @@ func (c *Client) Disconnect(ctx context.Context) error {
 }
 
 // Chat sends a message to a specific channel.
-func Chat(ctx context.Context, rdb *redis.Client, channel string, content string) error {
-	return rdb.Publish(ctx, channel, content).Err()
+func Chat(ctx echo.Context, rdb *redis.Client, channel string, content string) error {
+	return rdb.Publish(ctx.Request().Context(), channel, content).Err()
 }

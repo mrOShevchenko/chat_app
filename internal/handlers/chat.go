@@ -38,8 +38,7 @@ func (h *BaseHandler) Chat(c echo.Context) error {
 		return ErrorResponse(c, http.StatusUnauthorized, "invalid token", err)
 	}
 
-	ctx := c.Request().Context()
-	_, err = h.tokenService.GetCacheValue(ctx, accessTokenClaims.AccessUUID)
+	_, err = h.tokenService.GetCacheValue(c.Request().Context(), accessTokenClaims.AccessUUID)
 	if err != nil {
 		return ErrorResponse(c, http.StatusUnauthorized, "invalid token", err)
 	}
@@ -68,14 +67,14 @@ func (h *BaseHandler) Chat(c echo.Context) error {
 		}
 	}(ws)
 
-	if err = h.chatService.OnConnect(ctx, ws, user); err != nil {
+	if err = h.chatService.OnConnect(c, ws, user); err != nil {
 		h.chatService.HandleWSError(err, "error sending message", ws)
 		return err
 	}
 
-	closeCh := h.chatService.OnDisconnect(ctx, ws, user)
+	closeCh := h.chatService.OnDisconnect(c, ws, user)
 
-	h.chatService.OnChannelMessage(ctx, ws, user)
+	h.chatService.OnChannelMessage(c, ws, user)
 
 loop:
 	for {
@@ -88,7 +87,7 @@ loop:
 			}
 			break loop
 		default:
-			h.chatService.OnClientMessage(ctx, ws, user)
+			h.chatService.OnClientMessage(c, ws, user)
 		}
 	}
 	return nil

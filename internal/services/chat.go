@@ -2,10 +2,10 @@ package services
 
 import (
 	"chat_app/internal/models"
-	"context"
 	"encoding/json"
 	firebase "firebase.google.com/go"
 	"github.com/gorilla/websocket"
+	"github.com/labstack/echo/v4"
 	"github.com/pkg/errors"
 	"github.com/redis/go-redis/v9"
 	"log"
@@ -51,7 +51,7 @@ func NewChatService(
 }
 
 // OnConnect manages the actions required when a user connects.
-func (cs *ChatService) OnConnect(ctx context.Context, conn *websocket.Conn, user *models.User) error {
+func (cs *ChatService) OnConnect(ctx echo.Context, conn *websocket.Conn, user *models.User) error {
 	log.Printf("user %s id: %d, connected from: %s \n", user.Username, user.ID, conn.RemoteAddr())
 
 	u, err := Connect(ctx, cs.rdb, user)
@@ -63,7 +63,7 @@ func (cs *ChatService) OnConnect(ctx context.Context, conn *websocket.Conn, user
 }
 
 // OnDisconnect manages the actions required when a user disconnects.
-func (cs *ChatService) OnDisconnect(ctx context.Context, conn *websocket.Conn, user *models.User) chan struct{} {
+func (cs *ChatService) OnDisconnect(ctx echo.Context, conn *websocket.Conn, user *models.User) chan struct{} {
 	closeCh := make(chan struct{})
 
 	conn.SetCloseHandler(func(code int, text string) error {
@@ -82,7 +82,7 @@ func (cs *ChatService) OnDisconnect(ctx context.Context, conn *websocket.Conn, u
 }
 
 // OnClientMessage manages the actions required when a client message is received.
-func (cs *ChatService) OnClientMessage(ctx context.Context, conn *websocket.Conn, user *models.User) {
+func (cs *ChatService) OnClientMessage(ctx echo.Context, conn *websocket.Conn, user *models.User) {
 	msg, err := cs.readMessage(conn)
 	if err != nil {
 		cs.HandleWSError(err, "error reading message", conn)
@@ -172,7 +172,7 @@ func (cs *ChatService) isUserBlockedInChat(chat *models.Chat, user *models.User)
 	return false
 }
 
-func (cs *ChatService) sendMessage(ctx context.Context, msg msg, newMessage models.Message) error {
+func (cs *ChatService) sendMessage(ctx echo.Context, msg msg, newMessage models.Message) error {
 	channelID := strconv.Itoa(msg.ChatID)
 
 	err := Chat(ctx, cs.rdb, channelID, newMessage.Content)
@@ -189,7 +189,7 @@ func (cs *ChatService) saveMessage(newMessage models.Message) error {
 }
 
 // OnChannelMessage manages the actions required when a channel message is received.
-func (cs *ChatService) OnChannelMessage(ctx context.Context, conn *websocket.Conn, user *models.User) {
+func (cs *ChatService) OnChannelMessage(ctx echo.Context, conn *websocket.Conn, user *models.User) {
 	c := cs.connectedClients[user.ID]
 
 	go func() {
