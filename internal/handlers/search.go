@@ -23,10 +23,10 @@ const (
 // @Tags search
 // @Accept  json
 // @Produce application/json
-// @Param q searchQuery string true "searchQuery string for search by username, minimum 1 character, maximum 40 characters"
-// @Param type searchQuery string false "type of search, default: 'user', available: 'user', 'friend', 'blacklist'"
-// @Param order searchQuery string false "order of search, default: 'asc', available: 'asc', 'desc'"
-// @Param searchLimit searchQuery int false "limit of search, default: '10', available: '1-1000'"
+// @Param q query string true "searchQuery string for search by username, minimum 1 character, maximum 40 characters"
+// @Param type query string false "type of search, default: 'user', available: 'user', 'friend', 'blacklist'"
+// @Param order query string false "order of search, default: 'asc', available: 'asc', 'desc'"
+// @Param searchLimit query int false "limit of search, default: '10', available: '1-1000'"
 // @Security BearerAuth
 // @Success 200 {object} Response{data=[]models.User}
 // @Failure 400 {object} Response
